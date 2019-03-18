@@ -25,7 +25,7 @@ def health(app, **_):
 
 
 class Teachers(Router):
-    @Router.post('/')
+    @Router.post('')
     @middleware
     def create(self, body, **_):
         self.logger.info('create teacher', body)
@@ -36,15 +36,12 @@ class Teachers(Router):
         return 'teacher' + teacher_id
 
 
-class Students(Router):
-    @Router.post('/')
-    def create(self, body, **_):
-        self.logger.info('create student', body)
-        return body
+class Professor(Teachers):
+    @Router.get('/<teacher_id>/papers')
+    def query_papers(self, teacher_id, query, **_):
+        page_size = int(query.get('pagesize', 10))
 
-    @Router.get('/<student_id>')
-    def query(self, student_id: str, **_):
-        return 'student' + student_id
+        return [f'paper {i} author {teacher_id}' for i in range(page_size)]
 
 
 class School(App):
@@ -57,10 +54,11 @@ class School(App):
 if __name__ == '__main__':
     app = School()
 
-    v1 = Router() \
-        .use('/teachers', Teachers()) \
-        .use('/students', Students())
+    app.use('/', health)
 
-    app.use('/', health).use('/v1', v1)
+    app.use('/v1', Router()
+        .use('/teachers', Teachers())
+        .use('/professors', Professor())
+        )
 
     app.run(host='127.0.0.1', port=5000, debug=True)

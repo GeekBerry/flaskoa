@@ -51,6 +51,7 @@ class Method:
         router.route(f'{url_prefix}{self.rule}', methods=self.methods, **self.options)(self)
 
     def __call__(self, **params):
+        #  TODO 用装饰器实现这一功能
         ctx = {
             **params,
             'request': request,
@@ -123,9 +124,9 @@ class RouterInterface:
             if isinstance(method, Method):
                 method.bind(self)
 
-    @NotImplementedError
     def route(self, rule: str, methods: list, **kwargs):
-        pass  # 注册一个路由
+        """注册一个路由"""
+        raise NotImplementedError()
 
     @property
     def logger(self):

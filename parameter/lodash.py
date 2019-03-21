@@ -23,44 +23,53 @@ class Undefined:
 
 
 class Object(dict):
-    def __init__(self, **kwargs):
-        super().__init__()
-        for key, value in kwargs.items():
-            setattr(self, key, value)
+    def __new__(cls, data=Undefined(), **kwargs):
+        if isinstance(data, dict) or data is Undefined():
+            return super().__new__(cls)
+        elif isinstance(data, (tuple, list)):
+            return Object({str(index): each for index, each in enumerate(data)})
+        elif isinstance(data, set):
+            return Object({str(each): each for each in data})
+        else:
+            return data
 
-    def __getattr__(self, item):
-        return self.get(item, Undefined())
+    def __init__(self, data=None, **kwargs):
+        super().__init__()
+
+        if isinstance(data, dict):
+            for key, value in data.items():
+                self[key] = value
+
+        if kwargs:
+            for key, value in kwargs.items():
+                self[key] = value
 
     def __setattr__(self, key, value):
-        if value is not Undefined():
-            self[key] = value
+        self[key] = value
 
+    def __setitem__(self, key, value):
+        if not isinstance(key, str):
+            raise TypeError(f'key must be str, get {key}')
 
-def get(data: Object, path: str, default: object = Undefined()) -> any:
-    ret = data
+        if value is Undefined():
+            return
 
-    for name in path.split('.'):
-        ret = getattr(ret, name, Undefined())
-
-        if ret is Undefined():
-            if default is Undefined():
-                raise KeyError(path)
+        obj = self
+        names = key.split('.')
+        for index, name in enumerate(names):
+            if index == len(names) - 1:
+                dict.__setitem__(obj, name, Object(value))
             else:
-                return default
+                obj = dict.setdefault(obj, name, Object())
 
-    return ret
+    def __getattribute__(self, item):
+        return self[item]
 
+    def __getitem__(self, key):
+        if not isinstance(key, str):
+            raise TypeError(f'key must be str, get {key}')
 
-def set(data: Object, path: str, value: any):
-    part = data
-
-    names = path.split('.')
-    for i in range(len(names)):
-        if i != len(names) - 1:
-            next = getattr(part, names[i], Undefined())
-            if next is Undefined():
-                next = Object()
-                setattr(part, names[i], next)
-            part = next
-        else:
-            setattr(part, names[i], value)
+        obj = self
+        for name in key.split('.'):
+            obj = dict.get(obj, name, Undefined())
+        return obj
